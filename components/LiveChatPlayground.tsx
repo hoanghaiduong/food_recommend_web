@@ -187,7 +187,7 @@ const LiveChatPlayground: React.FC = () => {
                     placeholder="Search chats..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700/50 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-lime/50 transition-all placeholder-gray-400 dark:placeholder-gray-600"
+                    className="w-full pl-9 pr-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700/50 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:border-brand-lime focus:ring-2 focus:ring-brand-lime/50 transition-all placeholder-gray-400 dark:placeholder-gray-600"
                 />
             </div>
         </div>
@@ -349,7 +349,7 @@ const LiveChatPlayground: React.FC = () => {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 placeholder="Message Weihu Bot..." 
-                className="w-full bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-full py-4 pl-12 pr-14 focus:outline-none focus:ring-2 focus:ring-brand-lime/50 transition-all shadow-sm border border-gray-200 dark:border-gray-700/50"
+                className="w-full bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-full py-4 pl-12 pr-14 focus:outline-none focus:border-brand-lime focus:ring-2 focus:ring-brand-lime/50 transition-all shadow-sm border border-gray-200 dark:border-gray-700/50"
               />
               
               {/* Left Icons */}
@@ -370,7 +370,7 @@ const LiveChatPlayground: React.FC = () => {
                     onClick={handleSend}
                     className={`p-2 rounded-full transition-all duration-200 ${
                       input.trim() 
-                      ? 'bg-brand-lime text-black hover:scale-105 shadow-lg shadow-brand-lime/20' 
+                      ? 'bg-brand-lime text-white font-bold hover:scale-105 shadow-lg shadow-brand-lime/20' 
                       : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                     }`}
                  >

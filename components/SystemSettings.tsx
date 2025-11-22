@@ -81,7 +81,7 @@ const SystemSettings: React.FC = () => {
                           type={showGemini ? "text" : "password"}
                           value={geminiKey}
                           onChange={(e) => setGeminiKey(e.target.value)}
-                          className="w-full pl-4 pr-12 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-lime/50 transition-all"
+                          className="w-full pl-4 pr-12 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-mono focus:outline-none focus:border-brand-lime focus:ring-2 focus:ring-brand-lime/50 transition-all"
                           placeholder="Enter your Google AI Studio Key"
                        />
                        <button 
@@ -113,7 +113,7 @@ const SystemSettings: React.FC = () => {
                        type={showOpenAI ? "text" : "password"}
                        value={openaiKey}
                        onChange={(e) => setOpenaiKey(e.target.value)}
-                       className="w-full pl-4 pr-12 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-lime/50 transition-all"
+                       className="w-full pl-4 pr-12 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-mono focus:outline-none focus:border-brand-lime focus:ring-2 focus:ring-brand-lime/50 transition-all"
                        placeholder="sk-..."
                     />
                     <button 
@@ -130,7 +130,7 @@ const SystemSettings: React.FC = () => {
                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Default System Model</label>
                  <div className="relative">
                     <Cpu size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <select className="w-full pl-11 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-lime/50 transition-all appearance-none cursor-pointer">
+                    <select className="w-full pl-11 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-medium focus:outline-none focus:border-brand-lime focus:ring-2 focus:ring-brand-lime/50 transition-all appearance-none cursor-pointer">
                        <option>Gemini 1.5 Pro (Recommended)</option>
                        <option>Gemini 1.5 Flash</option>
                        <option>GPT-4o</option>
@@ -177,7 +177,7 @@ const SystemSettings: React.FC = () => {
                        type="text"
                        value={dbHost}
                        onChange={(e) => setDbHost(e.target.value)}
-                       className="w-full pl-11 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-lime/50 transition-all"
+                       className="w-full pl-11 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-mono focus:outline-none focus:border-brand-lime focus:ring-2 focus:ring-brand-lime/50 transition-all"
                     />
                  </div>
               </div>
@@ -187,7 +187,7 @@ const SystemSettings: React.FC = () => {
                     type="text"
                     value={collectionName}
                     onChange={(e) => setCollectionName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-lime/50 transition-all"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-mono focus:outline-none focus:border-brand-lime focus:ring-2 focus:ring-brand-lime/50 transition-all"
                  />
               </div>
            </div>
@@ -215,7 +215,7 @@ const SystemSettings: React.FC = () => {
                            type="number"
                            value={chunkSize}
                            onChange={(e) => setChunkSize(Number(e.target.value))}
-                           className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-lime/50 transition-all"
+                           className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-mono focus:outline-none focus:border-brand-lime focus:ring-2 focus:ring-brand-lime/50 transition-all"
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-bold">tokens</span>
                     </div>
@@ -227,7 +227,7 @@ const SystemSettings: React.FC = () => {
                     <select 
                        value={embeddingModel}
                        onChange={(e) => setEmbeddingModel(e.target.value)}
-                       className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-lime/50 transition-all appearance-none cursor-pointer"
+                       className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-sm font-medium focus:outline-none focus:border-brand-lime focus:ring-2 focus:ring-brand-lime/50 transition-all appearance-none cursor-pointer"
                     >
                        <option value="text-embedding-004">text-embedding-004 (Google)</option>
                        <option value="text-embedding-3-small">text-embedding-3-small (OpenAI)</option>
@@ -263,7 +263,7 @@ const SystemSettings: React.FC = () => {
       <div className="absolute bottom-4 right-4 z-10">
          <button 
             onClick={handleSave}
-            className="flex items-center gap-2 bg-brand-lime text-black hover:bg-brand-lime-dark dark:hover:bg-brand-lime-light transition-all px-8 py-4 rounded-2xl font-bold shadow-xl shadow-brand-lime/30 hover:scale-105 hover:shadow-brand-lime/50"
+            className="flex items-center gap-2 bg-brand-lime text-white hover:bg-brand-lime-dark transition-all px-8 py-4 rounded-2xl font-bold shadow-xl shadow-brand-lime/30 hover:scale-105 hover:shadow-brand-lime/50"
          >
             {isSaving ? (
                <>

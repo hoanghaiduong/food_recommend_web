@@ -138,7 +138,7 @@ export const DataTableToolbar: React.FC<DataTableToolbarProps> = ({
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-900 border border-white/40 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-lime/50 transition-all"
+                className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-900 border border-white/40 dark:border-white/10 rounded-xl text-sm focus:outline-none focus:border-brand-lime focus:ring-2 focus:ring-brand-lime/50 transition-all"
              />
           </div>
           

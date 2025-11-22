@@ -314,7 +314,7 @@ const KnowledgeBase: React.FC = () => {
                                 value={simQuery}
                                 onChange={(e) => setSimQuery(e.target.value)}
                                 placeholder="Query (e.g., 'Món nhiều protein')" 
-                                className="w-full bg-white/80 dark:bg-gray-900/80 border border-white/50 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-brand-lime/50 transition-all"
+                                className="w-full bg-white/80 dark:bg-gray-900/80 border border-white/50 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-brand-lime focus:ring-2 focus:ring-brand-lime/50 transition-all"
                              />
                          </div>
                     </div>

@@ -319,7 +319,7 @@ const BotConfig: React.FC = () => {
                 <div className="space-y-4">
                     <div>
                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Model</label>
-                         <select className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs rounded-xl p-2.5 font-medium outline-none">
+                         <select className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white text-xs rounded-xl p-2.5 font-medium outline-none focus:border-brand-lime focus:ring-2 focus:ring-brand-lime/50 transition-all">
                             <option>Gemini 1.5 Pro</option>
                             <option>Gemini 1.5 Flash</option>
                             <option>Llama 3.1 70B</option>
@@ -365,7 +365,7 @@ const BotConfig: React.FC = () => {
                         <input 
                             type="text" 
                             placeholder="Test prompt..." 
-                            className="flex-1 bg-gray-50 dark:bg-gray-900 dark:text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-brand-lime"
+                            className="flex-1 bg-gray-50 dark:bg-gray-900 dark:text-white rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-lime focus:ring-1 focus:ring-brand-lime"
                         />
                         <button className="p-2 bg-brand-lime text-white rounded-xl hover:bg-brand-lime-dark transition-colors">
                             <Play size={14} fill="currentColor" />
