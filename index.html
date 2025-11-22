@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weihu Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Fonts: Plus Jakarta Sans (Default), Inter, Roboto, Space Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+      /* CSS Variables for Theming */
+      :root {
+        --primary: #84CC16; /* Default Lime */
+        --primary-dark: #65A30D;
+        --primary-light: #ECFCCB;
+        --primary-bg: #F7FEE7;
+        --radius: 1.5rem; /* Default 2xl/3xl equivalent */
+        --font-body: 'Plus Jakarta Sans', sans-serif;
+      }
+
+      body {
+        font-family: var(--font-body);
+        background-color: #F9FAFB; /* Gray 50 */
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+
+      .dark body {
+        background-color: #111827;
+        color: #F3F4F6;
+      }
+
+      /* Custom scrollbar */
+      .hide-scrollbar::-webkit-scrollbar {
+        height: 6px;
+        width: 6px;
+      }
+      .hide-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .hide-scrollbar::-webkit-scrollbar-thumb {
+        background-color: #E5E7EB;
+        border-radius: 20px;
+      }
+    </style>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              // Map Tailwind colors to CSS Variables
+              'brand-lime': 'var(--primary)', 
+              'brand-lime-dark': 'var(--primary-dark)', 
+              'brand-lime-light': 'var(--primary-light)', 
+              'brand-lime-bg': 'var(--primary-bg)',
+              
+              // Legacy mappings
+              primary: '#111827',
+              secondary: '#6B7280',
+              'pastel-purple': '#F3F4F6', 
+              'pastel-blue': '#F3F4F6',
+              'pastel-orange': '#F3F4F6', 
+              'pastel-pink': '#F3F4F6',
+              'pastel-green': '#ECFCCB', 
+              'pastel-cyan': '#F3F4F6',
+              'brand-green': 'var(--primary-dark)', 
+              'brand-neon': 'var(--primary)', 
+            },
+            borderRadius: {
+              'theme': 'var(--radius)',
+              '3xl': 'var(--radius)', // Override standard 3xl to use variable
+              '2xl': 'calc(var(--radius) - 4px)',
+              'xl': 'calc(var(--radius) - 8px)',
+            },
+            fontFamily: {
+              sans: ['var(--font-body)', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "recharts": "https://aistudiocdn.com/recharts@^2.12.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
