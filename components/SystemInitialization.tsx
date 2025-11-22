@@ -1,427 +1,724 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-  CheckCircle2, 
-  Circle, 
-  XCircle, 
-  Loader2, 
-  Terminal, 
   Server, 
   Database, 
-  ShieldCheck, 
   Cpu, 
+  Settings, 
+  CheckCircle2, 
   ArrowRight, 
-  AlertTriangle, 
-  Save, 
-  Key, 
-  RefreshCw,
-  Globe,
+  ArrowLeft, 
+  Loader2, 
+  Globe, 
+  ShieldCheck, 
+  Zap,
+  AlertCircle,
+  Terminal,
+  Wifi,
+  HardDrive,
+  MessageSquare,
+  Sun,
   Moon,
-  Sun
+  Minus,
+  Maximize2,
+  ChevronDown,
+  ChevronUp,
+  X
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 // --- Types ---
 
-interface InitStep {
-  id: string;
-  label: string;
-  status: 'pending' | 'loading' | 'success' | 'error';
-  icon: React.ReactNode;
-  // Error Configuration
-  errorType?: 'missing_key' | 'connection_refused';
-  errorMessage?: string;
-  shouldFailOnce?: boolean; // Demo flag: fail on first try
-  hasFailed?: boolean; // Track failure to prevent infinite loops
-  configValues: Record<string, string>; // Store user inputs
-}
-
 interface SystemInitializationProps {
   onComplete: () => void;
 }
 
+type StepStatus = 'pending' | 'current' | 'completed';
+type LogType = 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR';
+
+interface LogEntry {
+  id: string;
+  timestamp: string;
+  type: LogType;
+  message: string;
+}
+
+interface WizardStep {
+  id: number;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+}
+
+interface FormData {
+  // Step 1: Backend
+  apiBaseUrl: string;
+  wsUrl: string;
+  // Step 2: Database
+  dbType: string;
+  dbHost: string;
+  dbPort: string;
+  dbUser: string;
+  dbPass: string;
+  dbName: string;
+  // Step 3: Vector
+  vectorProvider: string;
+  vectorHost: string;
+  vectorKey: string;
+  vectorCollection: string;
+  // Step 4: LLM
+  llmProvider: string;
+  llmKey: string;
+  llmModel: string;
+  // Step 5: General
+  botName: string;
+  welcomeMessage: string;
+  language: string;
+}
+
+const INITIAL_DATA: FormData = {
+  apiBaseUrl: 'http://localhost:8000',
+  wsUrl: 'ws://localhost:8000/ws',
+  dbType: 'PostgreSQL',
+  dbHost: 'localhost',
+  dbPort: '5432',
+  dbUser: 'admin',
+  dbPass: '',
+  dbName: 'weihu_core',
+  vectorProvider: 'Qdrant',
+  vectorHost: 'http://localhost:6333',
+  vectorKey: '',
+  vectorCollection: 'gym_food_v1',
+  llmProvider: 'Gemini',
+  llmKey: '',
+  llmModel: 'gemini-1.5-flash',
+  botName: 'GymCoach AI',
+  welcomeMessage: 'Xin chào, tôi có thể giúp gì cho lộ trình tập luyện của bạn?',
+  language: 'Vietnamese',
+};
+
+const STEPS: WizardStep[] = [
+  { id: 1, title: 'Backend & Network', description: 'Configure API Gateway & WebSocket', icon: <Globe size={20} /> },
+  { id: 2, title: 'Database Connection', description: 'Primary Data Storage', icon: <Database size={20} /> },
+  { id: 3, title: 'Vector Search (RAG)', description: 'Knowledge Base Indexing', icon: <HardDrive size={20} /> },
+  { id: 4, title: 'LLM Configuration', description: 'AI Brain & Model Settings', icon: <Cpu size={20} /> },
+  { id: 5, title: 'General Site Info', description: 'Bot Identity & Localization', icon: <Settings size={20} /> },
+];
+
+// --- Helper Components (Strict Theme Enforcement) ---
+
+const GlassInput = ({ 
+  label, 
+  value, 
+  onChange, 
+  placeholder, 
+  type = "text", 
+  required = false,
+  isValid = null,
+  isDarkMode
+}: { 
+  label: string; 
+  value: string; 
+  onChange: (val: string) => void; 
+  placeholder?: string; 
+  type?: string;
+  required?: boolean;
+  isValid?: boolean | null;
+  isDarkMode: boolean;
+}) => (
+  <div className="space-y-2">
+    <label className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+      {label} {required && <span className="text-red-500">*</span>}
+    </label>
+    <div className="relative">
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={`
+            w-full rounded-xl px-4 py-3 text-sm font-mono outline-none transition-all border
+            ${isDarkMode 
+              ? 'bg-black/30 border-gray-700 text-white placeholder-gray-600' 
+              : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
+            }
+            focus:border-[#84CC16] focus:ring-2 focus:ring-[#84CC16]/20
+            ${isValid === true 
+                ? '!border-brand-lime/50' 
+                : isValid === false
+                    ? '!border-red-500/50 focus:!border-red-500 focus:!ring-red-500/20'
+                    : ''
+            }
+          `}
+        />
+        {isValid === true && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-lime animate-in zoom-in duration-200">
+                <CheckCircle2 size={16} />
+            </div>
+        )}
+        {isValid === false && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 animate-in zoom-in duration-200">
+                <AlertCircle size={16} />
+            </div>
+        )}
+    </div>
+  </div>
+);
+
+const GlassSelect = ({
+    label,
+    value,
+    onChange,
+    options,
+    isDarkMode
+}: {
+    label: string;
+    value: string;
+    onChange: (val: string) => void;
+    options: string[];
+    isDarkMode: boolean;
+}) => (
+    <div className="space-y-2">
+        <label className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{label}</label>
+        <div className="relative">
+            <select
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className={`
+                  w-full border rounded-xl px-4 py-3 text-sm font-medium outline-none appearance-none cursor-pointer transition-all
+                  ${isDarkMode
+                    ? 'bg-black/30 border-gray-700 text-white'
+                    : 'bg-white border-gray-200 text-gray-900'
+                  }
+                  focus:border-[#84CC16] focus:ring-2 focus:ring-[#84CC16]/20
+                `}
+            >
+                {options.map(opt => <option key={opt} value={opt} className={isDarkMode ? 'bg-gray-900' : 'bg-white'}>{opt}</option>)}
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                <ArrowRight size={14} className="rotate-90" />
+            </div>
+        </div>
+    </div>
+);
+
+// --- Main Component ---
+
 const SystemInitialization: React.FC<SystemInitializationProps> = ({ onComplete }) => {
-  const [logs, setLogs] = useState<string[]>(['> Initializing boot sequence...']);
-  const [isComplete, setIsComplete] = useState(false);
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const { isDarkMode, toggleDarkMode } = useTheme();
+  const { isDarkMode, toggleDarkMode, primaryColor } = useTheme();
+  
+  // Wizard State
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [formData, setFormData] = useState<FormData>(INITIAL_DATA);
+  const [loading, setLoading] = useState(false);
+  
+  // Verification States
+  const [stepStatus, setStepStatus] = useState<{ [key: number]: 'pending' | 'success' | 'error' }>({
+      1: 'pending', 2: 'pending', 3: 'pending', 4: 'pending', 5: 'pending'
+  });
+  const [vectorCollectionStatus, setVectorCollectionStatus] = useState<'unknown' | 'exists' | 'missing' | 'created'>('unknown');
 
-  // Initial Steps Configuration
-  const [steps, setSteps] = useState<InitStep[]>([
-    { 
-        id: 'node', 
-        label: 'Node.js Environment (v20.11.0)', 
-        status: 'pending', 
-        icon: <Cpu size={18} />,
-        configValues: {} 
-    },
-    { 
-        id: 'python', 
-        label: 'Backend Connection (FastAPI)', 
-        status: 'pending', 
-        icon: <Server size={18} />,
-        configValues: {} 
-    },
-    { 
-        id: 'env', 
-        label: 'Environment Variables (.env)', 
-        status: 'pending', 
-        icon: <ShieldCheck size={18} />,
-        shouldFailOnce: true, // DEMO: This will fail first
-        errorType: 'missing_key',
-        errorMessage: 'Missing GOOGLE_API_KEY variable.',
-        configValues: { apiKey: '' }
-    },
-    { 
-        id: 'db', 
-        label: 'Vector DB (gym_food_v2)', 
-        status: 'pending', 
-        icon: <Database size={18} />,
-        errorType: 'connection_refused', // Fallback type if we needed it
-        errorMessage: 'Connection refused at localhost:6333',
-        configValues: { host: 'localhost', port: '6333' }
-    },
-  ]);
+  // Console State
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [isConsoleMinimized, setIsConsoleMinimized] = useState(false);
+  const consoleEndRef = useRef<HTMLDivElement>(null);
 
-  // Helper to add logs with color coding hint
-  const addLog = (text: string, type: 'info' | 'error' | 'success' = 'info') => {
-    const prefix = type === 'error' ? '[ERR]' : type === 'success' ? '[OK]' : '>';
-    setLogs(prev => [...prev, `${prefix} ${text}`]);
-  };
-
-  // Auto-scroll terminal
+  // Persistence
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [logs]);
-
-  // Sequential Execution Logic
-  useEffect(() => {
-    // If all steps done, finish
-    if (currentStepIndex >= steps.length) {
-      if (!isComplete) {
-        addLog("All systems operational.", 'success');
-        addLog("Redirecting to Dashboard...", 'info');
-        setTimeout(() => setIsComplete(true), 800);
-      }
-      return;
-    }
-
-    const currentStep = steps[currentStepIndex];
-
-    // Only process if state is 'pending'. 
-    // If 'error', we wait for user. If 'loading' or 'success', we do nothing here.
-    if (currentStep.status !== 'pending') return;
-
-    const runCheck = async () => {
-      // 1. Set Loading
-      setSteps(prev => prev.map((s, i) => i === currentStepIndex ? { ...s, status: 'loading' } : s));
-      addLog(`Checking ${currentStep.label}...`, 'info');
-
-      // Artificial Delay
-      await new Promise(resolve => setTimeout(resolve, 1200));
-
-      // 2. Simulate Failure (Demo Logic)
-      if (currentStep.shouldFailOnce && !currentStep.hasFailed) {
-         setSteps(prev => prev.map((s, i) => i === currentStepIndex ? { 
-             ...s, 
-             status: 'error', 
-             hasFailed: true 
-         } : s));
-         addLog(`${currentStep.errorMessage}`, 'error');
-         addLog(`Action required: Update configuration for ${currentStep.id}`, 'error');
-         return; // Stop execution, wait for user fix
-      }
-
-      // 3. Success
-      setSteps(prev => prev.map((s, i) => i === currentStepIndex ? { ...s, status: 'success' } : s));
-      addLog(`${currentStep.label} verified.`, 'success');
-      
-      // 4. Move to Next
-      setCurrentStepIndex(prev => prev + 1);
-    };
-
-    runCheck();
-
-  }, [currentStepIndex, steps, isComplete]);
-
-  // Handle User Input Changes in Error Forms
-  const handleConfigChange = (stepIndex: number, key: string, value: string) => {
-    setSteps(prev => prev.map((s, i) => i === stepIndex ? {
-        ...s,
-        configValues: { ...s.configValues, [key]: value }
-    } : s));
-  };
-
-  // Handle Retry Action
-  const handleRetry = async (index: number) => {
-    const step = steps[index];
+    const savedStep = localStorage.getItem('setup_current_step');
+    const savedData = localStorage.getItem('setup_form_data');
+    if (savedStep) setCurrentStep(parseInt(savedStep));
+    if (savedData) setFormData(JSON.parse(savedData));
     
-    // Validations (Mock)
-    if (step.errorType === 'missing_key' && !step.configValues.apiKey) {
-        addLog("Validation Failed: API Key cannot be empty", 'error');
-        return;
+    // Initial Log
+    addLog('INFO', 'System Initialization Wizard v2.5 started.');
+    addLog('INFO', 'Waiting for user configuration...');
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('setup_current_step', currentStep.toString());
+    localStorage.setItem('setup_form_data', JSON.stringify(formData));
+  }, [currentStep, formData]);
+
+  // Auto-scroll Console
+  useEffect(() => {
+    if (consoleEndRef.current) {
+        consoleEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
+  }, [logs, isConsoleMinimized]);
 
-    // Set to loading for retry
-    setSteps(prev => prev.map((s, i) => i === index ? { ...s, status: 'loading' } : s));
-    addLog(`Retrying configuration for ${step.label}...`, 'info');
+  const updateField = (field: keyof FormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setStepStatus(prev => ({ ...prev, [currentStep]: 'pending' }));
+  };
 
-    // Simulate validation delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+  // --- Console Logic ---
+  const addLog = (type: LogType, message: string) => {
+    const entry: LogEntry = {
+        id: Math.random().toString(36).substr(2, 9),
+        timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }) + '.' + Math.floor(Math.random() * 999),
+        type,
+        message
+    };
+    setLogs(prev => [...prev, entry]);
+    // Force console open on new activity if important
+    if (type === 'ERROR' || type === 'WARNING') {
+        setIsConsoleMinimized(false);
+    }
+  };
 
-    // Success Transition
-    setSteps(prev => prev.map((s, i) => i === index ? { ...s, status: 'success' } : s));
-    addLog(`Configuration updated. ${step.label} [OK]`, 'success');
+  // --- Simulation Logic ---
 
-    // Resume Sequence
-    setCurrentStepIndex(prev => prev + 1);
+  const handleBackendTest = async () => {
+    setLoading(true);
+    setIsConsoleMinimized(false);
+    addLog('INFO', `Initiating handshake with ${formData.apiBaseUrl}...`);
+    
+    await new Promise(r => setTimeout(r, 800));
+    addLog('WARNING', 'Checking CORS policy headers...');
+    
+    await new Promise(r => setTimeout(r, 800));
+    addLog('INFO', 'Verifying WebSocket endpoint accessibility...');
+
+    await new Promise(r => setTimeout(r, 600));
+    
+    // Success scenario
+    addLog('SUCCESS', `Connection established (Latency: 45ms). Version: Python Core v2.4`);
+    setStepStatus(prev => ({ ...prev, 1: 'success' }));
+    setLoading(false);
+  };
+
+  const handleDbTest = async () => {
+    setLoading(true);
+    setIsConsoleMinimized(false);
+    addLog('INFO', `Attempting connection to ${formData.dbType} at ${formData.dbHost}:${formData.dbPort}...`);
+    
+    await new Promise(r => setTimeout(r, 1000));
+    addLog('INFO', `Authenticating as user '${formData.dbUser}'...`);
+    
+    await new Promise(r => setTimeout(r, 1000));
+    
+    if (formData.dbPass.length > 0) {
+        addLog('SUCCESS', 'Database connection pool initialized. Active connections: 1');
+        setStepStatus(prev => ({ ...prev, 2: 'success' }));
+    } else {
+        addLog('WARNING', 'Using empty password (Not recommended for production).');
+        addLog('SUCCESS', 'Database connection established.');
+        setStepStatus(prev => ({ ...prev, 2: 'success' }));
+    }
+    setLoading(false);
+  };
+
+  const handleVectorVerify = async () => {
+    setLoading(true);
+    setIsConsoleMinimized(false);
+    addLog('INFO', `Connecting to Vector Provider: ${formData.vectorProvider}...`);
+    
+    await new Promise(r => setTimeout(r, 1200));
+
+    if (formData.vectorCollection.includes('new')) {
+        addLog('WARNING', `Collection '${formData.vectorCollection}' not found.`);
+        addLog('ERROR', '404: Collection missing. Please create it.');
+        setVectorCollectionStatus('missing');
+        setStepStatus(prev => ({ ...prev, 3: 'pending' }));
+    } else {
+        addLog('SUCCESS', `Collection '${formData.vectorCollection}' found. Dimensions: 1536.`);
+        setVectorCollectionStatus('exists');
+        setStepStatus(prev => ({ ...prev, 3: 'success' }));
+    }
+    setLoading(false);
+  };
+
+  const handleVectorCreate = async () => {
+    setLoading(true);
+    addLog('INFO', `Creating collection '${formData.vectorCollection}' with cosine distance...`);
+    await new Promise(r => setTimeout(r, 1500));
+    addLog('SUCCESS', 'Collection created successfully. Ready for indexing.');
+    setVectorCollectionStatus('created');
+    setStepStatus(prev => ({ ...prev, 3: 'success' }));
+    setLoading(false);
+  };
+
+  const handleLlmTest = async () => {
+    setLoading(true);
+    setIsConsoleMinimized(false);
+    addLog('INFO', `Sending test prompt to ${formData.llmProvider} (${formData.llmModel})...`);
+    
+    await new Promise(r => setTimeout(r, 1500));
+    
+    if (formData.llmProvider === 'Gemini') {
+        addLog('SUCCESS', 'Response received: "Hello! I am Gemini, ready to assist."');
+        addLog('INFO', 'Token usage: 45 prompt, 12 completion.');
+        setStepStatus(prev => ({ ...prev, 4: 'success' }));
+    } else {
+        addLog('SUCCESS', 'LLM Handshake successful.');
+        setStepStatus(prev => ({ ...prev, 4: 'success' }));
+    }
+    setLoading(false);
+  };
+
+  // --- Navigation ---
+  const canGoNext = () => {
+      if (currentStep === 5) return true;
+      return stepStatus[currentStep] === 'success';
+  };
+
+  const handleNext = () => {
+      if (currentStep < 5) {
+          setCurrentStep(p => p + 1);
+          addLog('INFO', `Transitioning to Step ${currentStep + 1}...`);
+      } else {
+          addLog('SUCCESS', 'Setup complete. Redirecting to Dashboard...');
+          setTimeout(onComplete, 1000);
+      }
+  };
+
+  const handleBack = () => {
+      if (currentStep > 1) setCurrentStep(p => p - 1);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-4 sm:p-6 animate-in fade-in duration-300 transition-colors">
-      <div className="w-full max-w-5xl bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row border border-gray-200 dark:border-gray-800 h-[650px] transition-all">
+    <div className={`min-h-screen w-full flex items-center justify-center p-4 transition-colors duration-500 ${isDarkMode ? 'bg-[#030712]' : 'bg-[#F9FAFB]'}`}>
         
-        {/* Left Column: Interactive Timeline Checklist */}
-        <div className="flex-1 p-8 md:p-10 flex flex-col overflow-y-auto relative hide-scrollbar bg-white dark:bg-gray-900 transition-colors">
-            <div>
-                {/* Header */}
-                <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-brand-lime rounded-2xl flex items-center justify-center shadow-[0_0_20px_-5px_rgba(132,204,22,0.4)]">
-                            <div className="w-5 h-5 bg-white rounded-md"></div>
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white leading-none">System Initialization</h1>
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-1.5">Setup Wizard v2.4.0</p>
-                        </div>
-                    </div>
-                    
-                    {/* Theme Toggle */}
-                    <button 
-                        onClick={toggleDarkMode}
-                        className="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/5 backdrop-blur-md border border-gray-200 dark:border-white/10 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all shadow-sm"
-                    >
-                        {isDarkMode ? <Moon size={18} /> : <Sun size={18} />}
-                    </button>
+        {/* Background Gradient Orb (Unified) */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+            <div 
+              className="absolute top-[-10%] left-[20%] w-[600px] h-[600px] rounded-full blur-[120px] transition-colors duration-500"
+              style={{ backgroundColor: `${primaryColor}20` }} 
+            />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-500/5 rounded-full blur-[120px]"></div>
+        </div>
+
+        {/* Main Glass Container */}
+        <div className="relative w-full max-w-6xl h-[800px] flex flex-col md:flex-row overflow-hidden rounded-3xl shadow-2xl border border-white/20 bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl z-10 animate-in fade-in zoom-in-95 duration-300">
+            
+            {/* LEFT PANEL: Sidebar (Responsive Step Indicator) */}
+            <div className="w-full md:w-[280px] flex flex-col p-6 border-b md:border-b-0 md:border-r border-gray-200/50 dark:border-gray-700/50 bg-white/40 dark:bg-black/20 relative transition-colors duration-300">
+                <div className="mb-8">
+                    <h1 className={`text-2xl font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Weihu Setup</h1>
+                    <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider font-bold">Configuration Wizard v2.5</p>
                 </div>
-                
-                <p className="text-gray-500 dark:text-gray-400 font-medium mb-8 text-sm">
-                    Verifying system integrity and environment configurations...
-                </p>
 
-                {/* Steps Timeline */}
-                <div className="flex flex-col">
-                    {steps.map((step, index) => {
-                        const isLast = index === steps.length - 1;
-                        const isActive = step.status === 'loading';
-                        const isError = step.status === 'error';
-                        const isSuccess = step.status === 'success';
-                        const isPending = step.status === 'pending';
-
+                <div className="space-y-2 flex-1">
+                    {STEPS.map((step) => {
+                        const isActive = currentStep === step.id;
+                        const isCompleted = currentStep > step.id;
+                        
                         return (
-                            <div key={step.id} className="flex group">
-                                {/* 1. Timeline Axis (Left) */}
-                                <div className="flex flex-col items-center mr-6 min-w-[40px] relative">
-                                    {/* Icon */}
-                                    <div className={`
-                                        relative z-10 w-10 h-10 rounded-2xl flex items-center justify-center border transition-all duration-500 shrink-0
-                                        ${isActive 
-                                            ? 'bg-lime-500 border-lime-500 text-white scale-110 shadow-[0_0_20px_-5px_rgba(132,204,22,0.6)]' 
-                                            : isError
-                                                ? 'bg-white dark:bg-gray-900 border-red-500 text-red-500 scale-110 shadow-[0_0_20px_-5px_rgba(239,68,68,0.5)]'
-                                                : isSuccess
-                                                    ? 'bg-brand-lime border-brand-lime text-white shadow-[0_0_15px_-5px_rgba(132,204,22,0.5)]'
-                                                    : 'bg-transparent border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600'
-                                        }
-                                    `}>
-                                        {isActive ? <Loader2 size={20} className="animate-spin" /> : step.icon}
-                                    </div>
-                                    
-                                    {/* Vertical Connector Line */}
-                                    {!isLast && (
-                                        <div className={`w-[2px] flex-grow my-1 rounded-full transition-colors duration-500 absolute top-10 bottom-[-24px] ${
-                                             isSuccess ? 'bg-brand-lime shadow-[0_0_10px_rgba(132,204,22,0.5)]' : 'bg-gray-200 dark:bg-gray-800'
-                                        }`}></div>
-                                    )}
+                            <div 
+                                key={step.id}
+                                className={`
+                                    relative p-3 rounded-xl border transition-all duration-300 flex items-center gap-3 group
+                                    ${isActive 
+                                        ? 'bg-brand-lime border-brand-lime text-white shadow-lg shadow-brand-lime/30' 
+                                        : isCompleted
+                                            ? isDarkMode ? 'bg-white/5 border-transparent text-gray-400' : 'bg-gray-100 border-transparent text-gray-500'
+                                            : isDarkMode ? 'border-transparent text-gray-600' : 'border-transparent text-gray-400'
+                                    }
+                                `}
+                            >
+                                <div className={`
+                                    w-10 h-10 rounded-lg flex items-center justify-center transition-colors shrink-0
+                                    ${isActive 
+                                        ? 'bg-white/20 text-white' 
+                                        : isCompleted 
+                                            ? 'bg-brand-lime/20 text-brand-lime' 
+                                            : isDarkMode ? 'bg-gray-800/50 text-gray-600' : 'bg-gray-200 text-gray-400'
+                                    }
+                                `}>
+                                    {isCompleted ? <CheckCircle2 size={18} /> : step.icon}
                                 </div>
 
-                                {/* 2. Card Area (Right) */}
-                                <div className="flex-1 pb-6">
-                                    <div className={`
-                                        rounded-3xl p-5 border transition-all duration-500 relative overflow-hidden
-                                        ${isActive 
-                                            ? 'bg-lime-50 dark:bg-lime-500/10 border-lime-200 dark:border-brand-lime/30 shadow-[0_0_30px_-10px_rgba(132,204,22,0.15)]'
-                                            : isError
-                                                ? 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 shadow-[0_0_30px_-10px_rgba(239,68,68,0.1)]'
-                                                : 'bg-gray-50 dark:bg-white/5 border-gray-100 dark:border-white/5'
-                                        }
-                                    `}>
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <h3 className={`font-bold text-sm transition-colors ${
-                                                    isActive ? 'text-lime-700 dark:text-brand-lime' : 
-                                                    isError ? 'text-red-600 dark:text-red-400' : 
-                                                    isSuccess ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'
-                                                }`}>
-                                                    {step.label}
-                                                </h3>
-                                                {isPending && <span className="text-[10px] text-gray-400 dark:text-gray-600">Waiting...</span>}
-                                            </div>
-                                            <div className="flex items-center">
-                                                {isSuccess && <CheckCircle2 size={18} className="text-brand-lime" />}
-                                                {isPending && <Circle size={18} className="text-gray-300 dark:text-gray-700" />}
-                                            </div>
-                                        </div>
-
-                                        {/* Interactive Error & Form */}
-                                        {isError && (
-                                            <div className="mt-3">
-                                                <p className="text-xs text-red-500 dark:text-red-400 font-medium flex items-center gap-1.5 mb-3">
-                                                    <AlertTriangle size={12} /> {step.errorMessage}
-                                                </p>
-                                                
-                                                <div className="pl-1 pt-3 border-t border-red-200 dark:border-red-500/20 animate-in slide-in-from-top-2 duration-300">
-                                                    {step.errorType === 'missing_key' && (
-                                                        <div className="space-y-3">
-                                                            <div className="relative w-full">
-                                                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10">
-                                                                    <Key size={16} />
-                                                                </div>
-                                                                <input 
-                                                                    type="text" 
-                                                                    value={step.configValues.apiKey}
-                                                                    onChange={(e) => handleConfigChange(index, 'apiKey', e.target.value)}
-                                                                    placeholder="Paste your key starting with AIza..." 
-                                                                    className="w-full rounded-xl py-3 pl-11 pr-4 bg-white dark:bg-[#0B1120] border border-gray-200 dark:border-gray-700 focus:outline-none focus:border-brand-lime focus:ring-2 focus:ring-brand-lime/50 transition-all text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 font-mono text-sm"
-                                                                    autoFocus
-                                                                />
-                                                            </div>
-                                                            <button 
-                                                                onClick={() => handleRetry(index)}
-                                                                className="flex items-center gap-2 px-4 py-2 bg-[#84CC16] hover:bg-[#65A30D] text-white text-xs font-bold rounded-xl shadow-lg shadow-lime-500/20 transition-all hover:scale-105 active:scale-95 mt-2"
-                                                            >
-                                                                <Save size={14} /> Save & Retry
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                     {step.errorType === 'connection_refused' && (
-                                                        <div className="space-y-3">
-                                                            <div className="flex gap-3">
-                                                                <div className="flex-1 relative w-full">
-                                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10">
-                                                                        <Globe size={16} />
-                                                                    </div>
-                                                                    <input 
-                                                                        type="text" 
-                                                                        value={step.configValues.host}
-                                                                        onChange={(e) => handleConfigChange(index, 'host', e.target.value)}
-                                                                        placeholder="localhost"
-                                                                        className="w-full rounded-xl py-3 pl-11 pr-4 bg-white dark:bg-[#0B1120] border border-gray-200 dark:border-gray-700 focus:outline-none focus:border-brand-lime focus:ring-2 focus:ring-brand-lime/50 transition-all text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 font-mono text-sm"
-                                                                    />
-                                                                </div>
-                                                                <div className="w-28 relative w-full">
-                                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold z-10">#</div>
-                                                                    <input 
-                                                                        type="text" 
-                                                                        value={step.configValues.port}
-                                                                        onChange={(e) => handleConfigChange(index, 'port', e.target.value)}
-                                                                        placeholder="6333"
-                                                                        className="w-full rounded-xl py-3 pl-8 pr-4 bg-white dark:bg-[#0B1120] border border-gray-200 dark:border-gray-700 focus:outline-none focus:border-brand-lime focus:ring-2 focus:ring-brand-lime/50 transition-all text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 font-mono text-sm"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                            <button 
-                                                                onClick={() => handleRetry(index)}
-                                                                className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-white text-xs font-bold rounded-xl shadow-sm transition-all hover:scale-105 active:scale-95 mt-2 border border-gray-200 dark:border-gray-700"
-                                                            >
-                                                                <RefreshCw size={14} /> Update Connection
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
+                                <div>
+                                    <p className={`text-sm font-bold`}>{step.title}</p>
+                                    <p className={`text-[10px] ${isActive ? 'text-white/80' : 'opacity-60'}`}>{step.description}</p>
                                 </div>
                             </div>
-                        );
+                        )
                     })}
+                </div>
+
+                <div className="mt-auto pt-6 border-t border-gray-200/50 dark:border-white/10">
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                         <div className="w-2 h-2 rounded-full bg-brand-lime animate-pulse"></div>
+                         <span>System Healthy</span>
+                    </div>
                 </div>
             </div>
 
-            {/* Footer Action */}
-            <div className="mt-auto pt-6 h-20 flex items-end">
-                {isComplete ? (
-                    <button 
-                        onClick={onComplete}
-                        className="w-full h-14 bg-brand-lime hover:bg-brand-lime-dark text-white text-base font-bold rounded-2xl shadow-[0_0_20px_-5px_rgba(132,204,22,0.5)] hover:shadow-[0_0_30px_-5px_rgba(132,204,22,0.7)] transition-all duration-300 flex items-center justify-center gap-2 animate-pulse-slow"
-                    >
-                        <span>Go to Dashboard</span>
-                        <ArrowRight size={20} />
-                    </button>
-                ) : (
-                    <div className="w-full h-14 flex items-center justify-center text-gray-500 text-sm font-medium bg-gray-100 dark:bg-gray-900/50 rounded-2xl border border-gray-200 dark:border-gray-800 border-dashed">
-                        <Loader2 size={16} className="animate-spin mr-2" />
-                        Waiting for all systems...
+            {/* RIGHT PANEL: Content (Form + Console) */}
+            <div className="flex-1 flex flex-col relative h-full">
+                
+                {/* THEME TOGGLE (Floating) */}
+                <button 
+                    onClick={toggleDarkMode}
+                    className="absolute top-4 right-4 z-50 p-2 rounded-full bg-gray-200/50 dark:bg-white/10 backdrop-blur-md border border-white/10 hover:bg-white/30 transition-colors shadow-lg group"
+                >
+                    {isDarkMode ? <Moon size={20} className="text-white" /> : <Sun size={20} className="text-yellow-600" />}
+                </button>
+
+                {/* UPPER: Form Wizard Area */}
+                <div className="flex-1 overflow-y-auto transition-colors duration-500 relative">
+                    <div className="p-8 pb-24 max-w-3xl mx-auto animate-in slide-in-from-right-4 duration-300 min-h-full flex flex-col">
+                         
+                         {/* Step Content */}
+                         <div className="flex-1 space-y-6">
+                            
+                            {/* Step Header */}
+                            <div className="mb-8">
+                                <h2 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                    {STEPS[currentStep-1].title}
+                                </h2>
+                                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                    {STEPS[currentStep-1].description}. Ensure all configurations match your deployment environment.
+                                </p>
+                            </div>
+
+                            {/* --- STEP 1: NETWORK --- */}
+                            {currentStep === 1 && (
+                                <>
+                                    <GlassInput 
+                                        label="API Base URL" 
+                                        value={formData.apiBaseUrl} 
+                                        onChange={(v) => updateField('apiBaseUrl', v)} 
+                                        placeholder="http://localhost:8000"
+                                        required
+                                        isValid={stepStatus[1] === 'success' ? true : stepStatus[1] === 'error' ? false : null}
+                                        isDarkMode={isDarkMode}
+                                    />
+                                    <GlassInput 
+                                        label="WebSocket URL" 
+                                        value={formData.wsUrl} 
+                                        onChange={(v) => updateField('wsUrl', v)} 
+                                        placeholder="ws://localhost:8000/ws"
+                                        required
+                                        isDarkMode={isDarkMode}
+                                    />
+                                    <div className="pt-2">
+                                        <button 
+                                            onClick={handleBackendTest}
+                                            disabled={loading}
+                                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold border transition-all shadow-md ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700 border-white/10 text-white' : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-900'}`}
+                                        >
+                                            {loading ? <Loader2 size={16} className="animate-spin" /> : <Wifi size={16} />}
+                                            Test Connectivity
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* --- STEP 2: DATABASE --- */}
+                            {currentStep === 2 && (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <GlassSelect label="Database Type" value={formData.dbType} onChange={(v) => updateField('dbType', v)} options={['PostgreSQL', 'MongoDB', 'MySQL']} isDarkMode={isDarkMode} />
+                                        <GlassInput label="Database Name" value={formData.dbName} onChange={(v) => updateField('dbName', v)} isDarkMode={isDarkMode} />
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="col-span-2">
+                                            <GlassInput label="Host" value={formData.dbHost} onChange={(v) => updateField('dbHost', v)} placeholder="localhost" isDarkMode={isDarkMode} />
+                                        </div>
+                                        <GlassInput label="Port" value={formData.dbPort} onChange={(v) => updateField('dbPort', v)} placeholder="5432" isDarkMode={isDarkMode} />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <GlassInput label="Username" value={formData.dbUser} onChange={(v) => updateField('dbUser', v)} isDarkMode={isDarkMode} />
+                                        <GlassInput label="Password" value={formData.dbPass} onChange={(v) => updateField('dbPass', v)} type="password" isDarkMode={isDarkMode} />
+                                    </div>
+
+                                    <div className="pt-2">
+                                        <button 
+                                            onClick={handleDbTest}
+                                            disabled={loading}
+                                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold border transition-all shadow-md ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700 border-white/10 text-white' : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-900'}`}
+                                        >
+                                            {loading ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
+                                            Test DB Connection
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* --- STEP 3: VECTOR --- */}
+                            {currentStep === 3 && (
+                                <>
+                                    <GlassSelect label="Provider" value={formData.vectorProvider} onChange={(v) => updateField('vectorProvider', v)} options={['Qdrant', 'Pinecone', 'Milvus', 'ChromaDB']} isDarkMode={isDarkMode} />
+                                    
+                                    <GlassInput label="Cluster URL / Host" value={formData.vectorHost} onChange={(v) => updateField('vectorHost', v)} placeholder="http://localhost:6333" isDarkMode={isDarkMode} />
+                                    
+                                    <GlassInput label="API Key (Optional)" value={formData.vectorKey} onChange={(v) => updateField('vectorKey', v)} type="password" isDarkMode={isDarkMode} />
+
+                                    <GlassInput 
+                                        label="Collection Name" 
+                                        value={formData.vectorCollection} 
+                                        onChange={(v) => {
+                                            updateField('vectorCollection', v);
+                                            setVectorCollectionStatus('unknown');
+                                        }} 
+                                        placeholder="e.g. gym_food_v1"
+                                        isValid={vectorCollectionStatus === 'exists' || vectorCollectionStatus === 'created' ? true : null}
+                                        isDarkMode={isDarkMode}
+                                    />
+
+                                    <div className="pt-2 flex items-center gap-3">
+                                        {vectorCollectionStatus !== 'missing' && (
+                                            <button 
+                                                onClick={handleVectorVerify}
+                                                disabled={loading || vectorCollectionStatus === 'exists' || vectorCollectionStatus === 'created'}
+                                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold border transition-all shadow-md disabled:opacity-50 ${isDarkMode ? 'bg-gray-800 hover:bg-gray-700 border-white/10 text-white' : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-900'}`}
+                                            >
+                                                {loading ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                                                {vectorCollectionStatus === 'exists' || vectorCollectionStatus === 'created' ? 'Verified' : 'Verify Collection'}
+                                            </button>
+                                        )}
+
+                                        {vectorCollectionStatus === 'missing' && (
+                                            <button 
+                                                onClick={handleVectorCreate}
+                                                disabled={loading}
+                                                className="flex items-center gap-2 bg-brand-lime hover:bg-brand-lime-dark text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-brand-lime/20"
+                                            >
+                                                {loading ? <Loader2 size={16} className="animate-spin" /> : <Terminal size={16} />}
+                                                Create Collection Now
+                                            </button>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+
+                            {/* --- STEP 4: LLM --- */}
+                            {currentStep === 4 && (
+                                <>
+                                    <GlassSelect label="Provider" value={formData.llmProvider} onChange={(v) => updateField('llmProvider', v)} options={['Gemini', 'OpenAI', 'Anthropic', 'Local LLM (Ollama)']} isDarkMode={isDarkMode} />
+                                    
+                                    <GlassInput label="API Key" value={formData.llmKey} onChange={(v) => updateField('llmKey', v)} type="password" placeholder="sk-..." isDarkMode={isDarkMode} />
+                                    
+                                    <GlassInput label="Model Name" value={formData.llmModel} onChange={(v) => updateField('llmModel', v)} placeholder="gemini-1.5-flash" isDarkMode={isDarkMode} />
+
+                                    <div className="pt-2">
+                                        <button 
+                                            onClick={handleLlmTest}
+                                            disabled={loading}
+                                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold border transition-all shadow-md ${isDarkMode ? 'bg-purple-900/20 hover:bg-purple-900/40 text-purple-300 border-purple-500/30' : 'bg-purple-50 hover:bg-purple-100 text-purple-600 border-purple-200'}`}
+                                        >
+                                            {loading ? <Loader2 size={16} className="animate-spin" /> : <MessageSquare size={16} />}
+                                            Test LLM Response
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* --- STEP 5: GENERAL --- */}
+                            {currentStep === 5 && (
+                                <>
+                                    <GlassInput label="Bot Name" value={formData.botName} onChange={(v) => updateField('botName', v)} isDarkMode={isDarkMode} />
+                                    
+                                    <div className="space-y-2">
+                                        <label className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Welcome Message</label>
+                                        <textarea 
+                                            value={formData.welcomeMessage}
+                                            onChange={(e) => updateField('welcomeMessage', e.target.value)}
+                                            className={`
+                                              w-full border rounded-xl px-4 py-3 text-sm font-mono outline-none transition-all min-h-[100px] resize-none
+                                              ${isDarkMode 
+                                                ? 'bg-black/30 border-gray-700 text-white placeholder-gray-600' 
+                                                : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
+                                              }
+                                              focus:border-[#84CC16] focus:ring-2 focus:ring-[#84CC16]/20
+                                            `}
+                                        />
+                                    </div>
+
+                                    <GlassSelect label="Primary Language" value={formData.language} onChange={(v) => updateField('language', v)} options={['Vietnamese', 'English', 'Japanese']} isDarkMode={isDarkMode} />
+                                </>
+                            )}
+                         </div>
+
+                        {/* Navigation Actions */}
+                        <div className={`mt-8 pt-6 border-t flex justify-between items-center ${isDarkMode ? 'border-white/10' : 'border-gray-200'}`}>
+                            <button 
+                                onClick={handleBack}
+                                disabled={currentStep === 1}
+                                className={`flex items-center gap-2 text-sm font-bold transition-colors disabled:opacity-30 ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}
+                            >
+                                <ArrowLeft size={16} />
+                                Back
+                            </button>
+
+                            <button 
+                                onClick={handleNext}
+                                disabled={!canGoNext()}
+                                className={`
+                                    flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-bold transition-all text-white
+                                    ${!canGoNext() 
+                                        ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-white/5' 
+                                        : 'bg-brand-lime hover:bg-brand-lime-dark shadow-[0_0_20px_rgba(132,204,22,0.4)] hover:shadow-[0_0_30px_rgba(132,204,22,0.6)] hover:scale-105'
+                                    }
+                                `}
+                            >
+                                {currentStep === 5 ? 'Finish Setup' : 'Next Step'}
+                                <ArrowRight size={16} />
+                            </button>
+                        </div>
                     </div>
-                )}
+                </div>
+
+                {/* LOWER: Live Console (Sticky Bottom - ALWAYS DARK) */}
+                <div 
+                   className={`
+                     shrink-0 w-full bg-[#0F172A] border-t border-brand-lime/30 transition-all duration-300 ease-in-out flex flex-col
+                     ${isConsoleMinimized ? 'h-10' : 'h-64'}
+                   `}
+                >
+                    {/* Console Header */}
+                    <div 
+                        className="h-10 bg-gray-950 flex items-center justify-between px-4 cursor-pointer hover:bg-gray-900 transition-colors border-b border-white/5"
+                        onClick={() => setIsConsoleMinimized(!isConsoleMinimized)}
+                    >
+                        <div className="flex items-center gap-4">
+                             <div className="flex gap-2">
+                                 <div className="w-3 h-3 rounded-full bg-red-500/80 hover:bg-red-500 transition-colors"></div>
+                                 <div className="w-3 h-3 rounded-full bg-yellow-500/80 hover:bg-yellow-500 transition-colors"></div>
+                                 <div className="w-3 h-3 rounded-full bg-green-500/80 hover:bg-green-500 transition-colors"></div>
+                             </div>
+                             <div className="flex items-center gap-2 text-xs font-mono text-gray-400">
+                                 <Terminal size={12} className="text-brand-lime" />
+                                 <span>live_console --verbose</span>
+                                 {/* Blinking Cursor */}
+                                 <span className="w-1.5 h-3 bg-brand-lime animate-pulse"></span>
+                             </div>
+                        </div>
+                        <button className="text-gray-500 hover:text-white transition-colors">
+                             {isConsoleMinimized ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </button>
+                    </div>
+
+                    {/* Console Body */}
+                    <div className="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-1.5 scroll-smooth bg-[#0F172A]">
+                         {logs.map((log) => (
+                             <div key={log.id} className="flex items-start gap-3 opacity-90 hover:opacity-100 transition-opacity">
+                                 <span className="text-gray-500 shrink-0">[{log.timestamp}]</span>
+                                 <span className={`font-bold shrink-0 w-16 ${
+                                     log.type === 'INFO' ? 'text-gray-400' :
+                                     log.type === 'SUCCESS' ? 'text-brand-lime' :
+                                     log.type === 'WARNING' ? 'text-yellow-400' : 'text-red-500'
+                                 }`}>
+                                     [{log.type}]
+                                 </span>
+                                 <span className={`break-all ${
+                                      log.type === 'ERROR' ? 'text-red-300' : 'text-gray-300'
+                                 }`}>
+                                     {log.message}
+                                 </span>
+                             </div>
+                         ))}
+                         <div ref={consoleEndRef} />
+                    </div>
+                </div>
+
             </div>
         </div>
-
-        {/* Right Column: Terminal / Logs */}
-        <div className="hidden md:flex w-[420px] bg-[#0D1117] p-6 flex-col text-xs font-mono relative border-l border-gray-200 dark:border-white/5">
-             <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-800">
-                 <div className="flex items-center gap-2 text-gray-400">
-                     <Terminal size={14} />
-                     <span className="uppercase tracking-widest font-bold">System Log</span>
-                 </div>
-                 <div className="flex gap-1.5">
-                     <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500"></div>
-                     <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500"></div>
-                     <div className="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500"></div>
-                 </div>
-             </div>
-
-             <div 
-                ref={scrollRef}
-                className="flex-1 overflow-y-auto space-y-2 scroll-smooth hide-scrollbar"
-                style={{ maxHeight: '550px' }}
-             >
-                {logs.map((log, idx) => {
-                    const isError = log.includes('[ERR]');
-                    const isSuccess = log.includes('[OK]');
-                    return (
-                        <div key={idx} className={`break-words leading-relaxed ${
-                            isError ? 'text-red-400 bg-red-900/10 border-l-2 border-red-500 pl-2' : 
-                            isSuccess ? 'text-brand-lime' : 
-                            'text-gray-400'
-                        }`}>
-                            {log}
-                        </div>
-                    )
-                })}
-                {!isComplete && (
-                    <div className="flex gap-1 mt-2">
-                        <span className="text-brand-lime">_</span>
-                        <span className="animate-pulse bg-brand-lime w-2 h-4 block"></span>
-                    </div>
-                )}
-             </div>
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes pulse-slow {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-        }
-        .animate-pulse-slow {
-            animation: pulse-slow 3s infinite;
-        }
-      `}</style>
     </div>
   );
 };
