@@ -219,6 +219,39 @@ export const useSetupWizard = () => {
     }
   };
 
+  // --- Dev Mode: Quick Finish ---
+  const quickFinishSetup = async () => {
+    setIsLoading(true);
+    addLog('INFO', 'DEV MODE: Skipping setup sequence...');
+    addLog('INFO', 'POST /api/v2/setup/complete-with-defaults');
+    
+    try {
+      // Mock API latency
+      await new Promise(r => setTimeout(r, 1500));
+      
+      // Use a distinct dev key or keep existing one if Step 0 was passed
+      const currentKey = localStorage.getItem('x-admin-key');
+      if (!currentKey) {
+        localStorage.setItem('x-admin-key', 'dev-master-key-123');
+        addLog('WARNING', 'Generated temporary Dev Key: dev-master-key-123');
+      }
+
+      setStepStatus({
+        1: 'success', 2: 'success', 3: 'success', 4: 'success', 5: 'success', 6: 'success'
+      });
+      setDbInitStatus('migrated');
+
+      addLog('SUCCESS', 'System Initialized with Default Dev Config.');
+      await finishSetup();
+      return true;
+    } catch (error) {
+      addLog('ERROR', 'Quick setup failed.');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     currentStep,
     setCurrentStep,
@@ -238,6 +271,7 @@ export const useSetupWizard = () => {
     checkDbSchemaStatus,
     runMigration,
     testLlm,
-    finishSetup
+    finishSetup,
+    quickFinishSetup
   };
 };

@@ -31,16 +31,23 @@ api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      // Clear key and redirect to start
-      console.warn('[API] Unauthorized. Clearing key and resetting...');
+      console.warn('[API] Unauthorized. Clearing key...');
       localStorage.removeItem('x-admin-key');
-      
-      // Dispatch a custom event so the UI can react without page reload if desired,
-      // or simply rely on the component checking localStorage.
+      // Dispatch event to notify SetupGuard to switch to Login
       window.dispatchEvent(new Event('auth-unauthorized'));
     }
     return Promise.reject(error);
   }
 );
+
+// --- Public API Instance (No Auth Interceptors) ---
+// Used for status checks and initial handshakes
+export const publicApi: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 5000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 export default api;

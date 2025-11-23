@@ -5,17 +5,16 @@ import Header from './components/Header';
 import DashboardStats from './components/DashboardStats';
 import KnowledgeBase from './components/KnowledgeBase';
 import BotConfig from './components/BotConfig';
-import SystemInitialization from './components/SystemInitialization';
 import ThemeStudio from './components/ThemeStudio';
 import SystemLogs from './components/SystemLogs';
 import LiveChatPlayground from './components/LiveChatPlayground';
 import SystemSettings from './components/SystemSettings';
 import CommandPalette from './components/CommandPalette';
+import SetupGuard from './components/SetupGuard';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { SidebarProvider } from './contexts/SidebarContext';
 
 const AppContent: React.FC = () => {
-  const [isSystemReady, setIsSystemReady] = useState(false);
   const [currentView, setCurrentView] = useState<string>('dashboard');
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const { primaryColor, isDarkMode } = useTheme();
@@ -41,10 +40,6 @@ const AppContent: React.FC = () => {
     backgroundAttachment: 'fixed',
     backgroundSize: 'cover'
   };
-
-  if (!isSystemReady) {
-    return <SystemInitialization onComplete={() => setIsSystemReady(true)} />;
-  }
 
   // Special layout for Playground
   if (currentView === 'playground') {
@@ -101,7 +96,9 @@ const App: React.FC = () => {
   return (
     <ThemeProvider>
       <SidebarProvider>
-        <AppContent />
+        <SetupGuard>
+            <AppContent />
+        </SetupGuard>
       </SidebarProvider>
     </ThemeProvider>
   );

@@ -9,10 +9,12 @@ import {
   Palette, 
   Settings,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  LogOut
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSidebar } from '../contexts/SidebarContext';
+import { useAuth } from '../hooks/useAuth';
 
 interface SidebarProps {
   currentView: string;
@@ -35,12 +37,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView }) => {
     handleMouseLeave,
     showUserProfile
   } = useSidebar();
+  const { logout } = useAuth();
 
   const [hoveredItem, setHoveredItem] = useState<TooltipState | null>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   // Handle Tooltip Positioning
-  const onHoverItem = (e: React.MouseEvent<HTMLDivElement>, label: string) => {
+  const onHoverItem = (e: React.MouseEvent<HTMLButtonElement | HTMLDivElement>, label: string) => {
     if (!isCollapsed) return;
     
     const rect = e.currentTarget.getBoundingClientRect();
@@ -173,27 +176,49 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView }) => {
             ))}
           </div>
 
-          {/* User Profile (Footer) */}
+          {/* User Profile & Logout (Footer) */}
           {showUserProfile && (
-            <div 
-              className={`mt-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-sm flex items-center cursor-pointer hover:bg-white dark:hover:bg-gray-800 hover:shadow-md transition-all flex-shrink-0 border border-white/50 dark:border-gray-700/40 group ${isCollapsed ? 'justify-center p-2 aspect-square' : 'justify-between p-3'}`}
-              onMouseEnter={(e) => onHoverItem(e, "User Profile")}
-              onMouseLeave={onLeaveItem}
-            >
-              <div className="flex items-center gap-3 overflow-hidden">
-                <img 
-                  src="https://picsum.photos/id/65/100/100" 
-                  alt="Profile" 
-                  className="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-white dark:border-gray-700"
-                />
-                
-                <div className={`flex flex-col overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100 block'}`}>
-                  <span className="text-sm font-bold text-gray-900 dark:text-white truncate">Brooklyn S.</span>
-                  <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate">simmons@gamil.com</span>
+            <div className="mt-6 flex flex-col gap-2">
+              <div 
+                className={`bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-sm flex items-center cursor-pointer hover:bg-white dark:hover:bg-gray-800 hover:shadow-md transition-all flex-shrink-0 border border-white/50 dark:border-gray-700/40 group ${isCollapsed ? 'justify-center p-2 aspect-square' : 'justify-between p-3'}`}
+                onMouseEnter={(e) => onHoverItem(e, "User Profile")}
+                onMouseLeave={onLeaveItem}
+              >
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <img 
+                    src="https://picsum.photos/id/65/100/100" 
+                    alt="Profile" 
+                    className="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-white dark:border-gray-700"
+                  />
+                  
+                  <div className={`flex flex-col overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100 block'}`}>
+                    <span className="text-sm font-bold text-gray-900 dark:text-white truncate">Brooklyn S.</span>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate">simmons@gamil.com</span>
+                  </div>
                 </div>
+                
+                {!isCollapsed && <ChevronRight size={16} className="text-gray-400 flex-shrink-0 group-hover:text-brand-lime transition-colors" />}
               </div>
-              
-              {!isCollapsed && <ChevronRight size={16} className="text-gray-400 flex-shrink-0 group-hover:text-brand-lime transition-colors" />}
+
+              {/* Logout Button */}
+              <button 
+                onClick={logout}
+                className={`
+                  group flex items-center rounded-xl cursor-pointer transition-all duration-200 border border-transparent
+                  ${isCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-3'}
+                  text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 hover:border-red-100 dark:hover:border-red-900/30
+                `}
+                title="Sign Out"
+                onMouseEnter={(e) => onHoverItem(e, "Sign Out")}
+                onMouseLeave={onLeaveItem}
+              >
+                  <div className="flex-shrink-0">
+                     <LogOut size={20} />
+                  </div>
+                  <span className={`font-bold whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100 block'}`}>
+                     Log Out
+                  </span>
+              </button>
             </div>
           )}
 

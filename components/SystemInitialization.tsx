@@ -4,7 +4,7 @@ import {
   Server, Database, Cpu, Settings, CheckCircle2, ArrowRight, ArrowLeft, 
   Loader2, Globe, ShieldCheck, Zap, AlertCircle, Terminal, Wifi, HardDrive, 
   MessageSquare, Sun, Moon, Lock, Key, ChevronDown, ChevronUp, Layers, 
-  AlertTriangle, RotateCcw, Play, SkipForward, X
+  AlertTriangle, RotateCcw, Play, SkipForward, X, FastForward
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSetupWizard } from '../hooks/useSetupWizard';
@@ -126,7 +126,8 @@ const SystemInitialization: React.FC<SystemInitializationProps> = ({ onComplete 
     checkDbSchemaStatus,
     runMigration,
     testLlm,
-    finishSetup
+    finishSetup,
+    quickFinishSetup
   } = useSetupWizard();
 
   const [adminKey, setAdminKey] = useState('');
@@ -218,6 +219,13 @@ const SystemInitialization: React.FC<SystemInitializationProps> = ({ onComplete 
 
   const handleBack = () => {
       if (currentStep > 1) setCurrentStep(p => p - 1);
+  };
+
+  const handleQuickFinish = async () => {
+    const success = await quickFinishSetup();
+    if (success) {
+      setTimeout(onComplete, 1000);
+    }
   };
 
   // --- Render: Step 0 (Welcome & Security) ---
@@ -465,6 +473,20 @@ const SystemInitialization: React.FC<SystemInitializationProps> = ({ onComplete 
                 </div>
             </div>
         </div>
+
+        {/* Quick Finish Button (Dev Mode) */}
+        {currentStep > 0 && currentStep < 6 && (
+            <div className="absolute bottom-8 right-8 z-50">
+                <button
+                    onClick={handleQuickFinish}
+                    disabled={isLoading}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-gray-500 hover:text-gray-800 dark:hover:text-white border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md hover:bg-white dark:hover:bg-gray-800 transition-all"
+                >
+                    <FastForward size={14} />
+                    Skip to Login (Dev Mode)
+                </button>
+            </div>
+        )}
 
         {showResetModal && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
